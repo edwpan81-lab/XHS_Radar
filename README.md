@@ -1,6 +1,6 @@
 # XHS Radar
 
-Semi-automated Xiaohongshu/RedNote hotspot radar for topic discovery, low-follower high-engagement note analysis, writing angles, and Feishu report generation.
+Repo for Xiaoyan's radar: a semi-automated Xiaohongshu/RedNote hotspot radar for topic discovery, low-follower high-engagement note analysis, writing angles, and Feishu report generation.
 
 ## What This MVP Does
 
