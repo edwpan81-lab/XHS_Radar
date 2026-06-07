@@ -1,0 +1,7 @@
+.xiaohongshu-cli/
+__pycache__/
+*.pyc
+.env
+.env.*
+screen_capture.png
+session_state.json
