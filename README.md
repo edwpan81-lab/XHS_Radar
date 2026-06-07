@@ -45,7 +45,32 @@ Useful Feishu permissions:
 - `docx:document.block:convert` to convert Markdown into richer doc blocks.
 - Drive permission/member scopes to add a user collaborator to app-created docs.
 
+## RedNote-MCP Setup
+
+Install and initialize RedNote-MCP:
+
+```powershell
+npm install -g rednote-mcp
+rednote-mcp init 120
+```
+
+Add this to `C:\Users\<User>\.codex\config.toml`:
+
+```toml
+[mcp_servers.rednote]
+command = "rednote-mcp"
+args = ["--stdio"]
+```
+
+Then restart Codex. See [docs/rednote_mcp_setup.md](docs/rednote_mcp_setup.md) for details.
+
 ## Current Scripts
+
+Collect a small raw Xiaohongshu sample through RedNote-MCP:
+
+```powershell
+python scripts\collect_xhs_notes.py --config config\xhs_keywords.example.json --out data\xhs_raw\popmart.json --detail-limit 1
+```
 
 Create a Feishu report from Markdown:
 

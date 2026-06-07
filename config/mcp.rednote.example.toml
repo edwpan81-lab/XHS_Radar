@@ -1,0 +1,6 @@
+# Add this to your Codex config.toml after installing and initializing RedNote-MCP.
+# Windows default path: C:\Users\<User>\.codex\config.toml
+
+[mcp_servers.rednote]
+command = "rednote-mcp"
+args = ["--stdio"]

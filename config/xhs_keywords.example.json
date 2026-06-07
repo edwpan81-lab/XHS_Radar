@@ -1,0 +1,26 @@
+{
+  "default_limit_per_keyword": 5,
+  "pause_seconds": 6,
+  "keywords": [
+    {
+      "name": "popmart_core",
+      "query": "泡泡玛特",
+      "purpose": "brand-wide hotspot scan"
+    },
+    {
+      "name": "labubu_normal_people",
+      "query": "Labubu 普通人",
+      "purpose": "ordinary-consumer perspective"
+    },
+    {
+      "name": "popmart_avoid",
+      "query": "泡泡玛特 避雷",
+      "purpose": "negative experience and pain points"
+    },
+    {
+      "name": "popmart_why_hot",
+      "query": "泡泡玛特 为什么火",
+      "purpose": "consumption psychology and business angles"
+    }
+  ]
+}

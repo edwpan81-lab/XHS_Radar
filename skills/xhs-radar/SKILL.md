@@ -33,6 +33,7 @@ topic recommendations, and Feishu reports.
 2. Search with RedNote-MCP first.
    - Prefer `search_notes` with small limits.
    - Record title, author, content snippet, likes, comments, URL, and tags.
+   - For setup details and standalone collection, read `references/rednote_mcp.md`.
 3. Select promising notes for detail reads.
    - Prioritize high comments, high saves if available, strong title hooks, and unusual angles.
    - If follower count is unavailable, label the sample as `疑似低粉高互动` and require manual/browser review.
@@ -124,3 +125,15 @@ python scripts/share_feishu_doc.py DOCUMENT_ID email user@example.com full_acces
 
 If Markdown conversion fails, create plain text blocks and tell the user which
 Feishu scope is missing, usually `docx:document.block:convert`.
+
+## RedNote-MCP Script
+
+Use `scripts/collect_xhs_notes.py` when the user wants raw JSON snapshots from
+RedNote-MCP outside the Codex MCP tool surface.
+
+```powershell
+python scripts/collect_xhs_notes.py --config config/xhs_keywords.example.json --out data/xhs_raw/sample.json --detail-limit 1
+```
+
+Keep `--detail-limit` small. If the script or MCP server times out, stop rather
+than repeatedly retrying.
