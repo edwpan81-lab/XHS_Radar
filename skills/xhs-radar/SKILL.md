@@ -123,6 +123,10 @@ Grant the user access:
 python scripts/share_feishu_doc.py DOCUMENT_ID email user@example.com full_access
 ```
 
+This requires `docs:permission.member` or `docs:permission.member:create`.
+If missing, open the scope in the Feishu app console, publish the permission
+change, then rerun the command.
+
 If Markdown conversion fails, create plain text blocks and tell the user which
 Feishu scope is missing, usually `docx:document.block:convert`.
 

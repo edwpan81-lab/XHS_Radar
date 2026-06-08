@@ -43,7 +43,7 @@ Useful Feishu permissions:
 
 - `docx:document` or `docx:document:create` to create docs.
 - `docx:document.block:convert` to convert Markdown into richer doc blocks.
-- Drive permission/member scopes to add a user collaborator to app-created docs.
+- `docs:permission.member` or `docs:permission.member:create` to add a user collaborator to app-created docs.
 
 ## RedNote-MCP Setup
 
@@ -83,6 +83,10 @@ Grant a user access to an app-created doc:
 ```powershell
 python scripts\share_feishu_doc.py QSBWd0aOXo6FhCxt2LScU5EEnEs email your@email.com full_access
 ```
+
+If this reports missing `docs:permission.member` or `docs:permission.member:create`,
+open that scope in the Feishu app console, publish the permission change, and rerun
+the command.
 
 ## Codex Skill
 

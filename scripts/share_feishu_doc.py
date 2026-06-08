@@ -1,6 +1,8 @@
 import json
 import os
+import re
 import sys
+from urllib.parse import urlparse
 
 import requests
 
@@ -47,34 +49,92 @@ def get_tenant_token() -> str:
     return token
 
 
+def normalize_doc_token(value: str) -> str:
+    """Accept either a raw token or a Feishu/Lark docx URL."""
+    parsed = urlparse(value)
+    if parsed.scheme and parsed.netloc:
+        match = re.search(r"/docx/([^/?#]+)", parsed.path)
+        if match:
+            return match.group(1)
+    return value
+
+
+def build_member(member_type: str, member_id: str, perm: str, include_optional: bool = True):
+    member = {
+        "member_type": member_type,
+        "member_id": member_id,
+        "perm": perm,
+    }
+    if include_optional:
+        member["perm_type"] = "container"
+        member["type"] = "user"
+    return member
+
+
+def add_member(token: str, document_id: str, member_type: str, member_id: str, perm: str, doc_type: str):
+    errors: list[str] = []
+    attempts = [
+        (
+            "batch_create_full",
+            "POST",
+            f"/drive/v1/permissions/{document_id}/members/batch_create?type={doc_type}&need_notification=false",
+            {"members": [build_member(member_type, member_id, perm, include_optional=True)]},
+        ),
+        (
+            "batch_create_minimal",
+            "POST",
+            f"/drive/v1/permissions/{document_id}/members/batch_create?type={doc_type}&need_notification=false",
+            {"members": [build_member(member_type, member_id, perm, include_optional=False)]},
+        ),
+        (
+            "single_full",
+            "POST",
+            f"/drive/v1/permissions/{document_id}/members?type={doc_type}",
+            build_member(member_type, member_id, perm, include_optional=True),
+        ),
+        (
+            "single_minimal",
+            "POST",
+            f"/drive/v1/permissions/{document_id}/members?type={doc_type}",
+            build_member(member_type, member_id, perm, include_optional=False),
+        ),
+    ]
+    for name, method, path, body in attempts:
+        try:
+            return name, api(method, path, token=token, json=body)
+        except Exception as exc:
+            error = str(exc)
+            errors.append(f"{name}: {error}")
+            if name.startswith("batch_create") and (
+                "docs:permission.member" in error or "docs:permission.member:create" in error
+            ):
+                raise RuntimeError(
+                    "Missing Feishu permission scope for adding document collaborators. "
+                    "Open docs:permission.member or docs:permission.member:create in the Feishu app console, "
+                    "publish the app permission change, then rerun this command.\n"
+                    + error
+                )
+    raise RuntimeError("All permission add attempts failed:\n" + "\n".join(errors))
+
+
 def main():
     if len(sys.argv) < 2:
         raise SystemExit(
-            "Usage: python scripts/share_feishu_doc.py <document_id> [email|openid|unionid] [member_id] [view|edit|full_access]"
+            "Usage: python scripts/share_feishu_doc.py <document_id_or_url> [email|openid|unionid|userid] [member_id] [view|edit|full_access] [docx|doc|sheet|file|bitable]"
         )
 
-    document_id = sys.argv[1]
+    document_id = normalize_doc_token(sys.argv[1])
     member_type = sys.argv[2] if len(sys.argv) > 2 else os.environ.get("FEISHU_REPORT_MEMBER_TYPE", "email")
     member_id = sys.argv[3] if len(sys.argv) > 3 else os.environ.get("FEISHU_REPORT_USER_EMAIL")
     perm = sys.argv[4] if len(sys.argv) > 4 else os.environ.get("FEISHU_REPORT_USER_PERM", "full_access")
+    doc_type = sys.argv[5] if len(sys.argv) > 5 else os.environ.get("FEISHU_REPORT_DOC_TYPE", "docx")
 
     if not member_id:
         raise RuntimeError("Pass member_id or set FEISHU_REPORT_USER_EMAIL")
 
     token = get_tenant_token()
-    payload = api(
-        "POST",
-        f"/drive/v1/permissions/{document_id}/members?type=docx",
-        token=token,
-        json={
-            "member_type": member_type,
-            "member_id": member_id,
-            "perm": perm,
-            "perm_type": "container",
-            "type": "user",
-        },
-    )
-    print(json.dumps(payload.get("data", payload), ensure_ascii=False))
+    method_name, payload = add_member(token, document_id, member_type, member_id, perm, doc_type)
+    print(json.dumps({"attempt": method_name, "data": payload.get("data", payload)}, ensure_ascii=False))
 
 
 if __name__ == "__main__":
