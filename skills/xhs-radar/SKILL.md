@@ -157,3 +157,16 @@ python scripts/collect_xhs_notes.py --config config/xhs_keywords.example.json --
 
 Keep `--detail-limit` small. If the script or MCP server times out, stop rather
 than repeatedly retrying.
+
+## Feishu Bitable Sample Library
+
+Use `scripts/sync_sample_library.py` to sync report samples into the Feishu
+Bitable sample library.
+
+```powershell
+python scripts/sync_sample_library.py --report reports/popmart_mvp_2026-06-07.md
+```
+
+If `FEISHU_REPORT_USER_MOBILE`, `FEISHU_REPORT_USER_EMAIL`, or
+`FEISHU_REPORT_MEMBER_TYPE` + `FEISHU_REPORT_MEMBER_ID` is configured, the script
+automatically adds that user as a `full_access` collaborator on the Bitable app.

@@ -73,6 +73,17 @@ Collect a small raw Xiaohongshu sample through RedNote-MCP:
 python scripts\collect_xhs_notes.py --config config\xhs_keywords.example.json --out data\xhs_raw\popmart.json --detail-limit 1
 ```
 
+Sync report samples into the Feishu Bitable sample library:
+
+```powershell
+python scripts\sync_sample_library.py --report reports\popmart_mvp_2026-06-07.md
+```
+
+If `FEISHU_REPORT_USER_MOBILE`, `FEISHU_REPORT_USER_EMAIL`, or
+`FEISHU_REPORT_MEMBER_TYPE` + `FEISHU_REPORT_MEMBER_ID` is configured, the sample
+library script will automatically add that user as a `full_access` collaborator
+on the Bitable app.
+
 Create a Feishu report from Markdown:
 
 ```powershell
