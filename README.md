@@ -36,6 +36,7 @@ Optional:
 ```powershell
 setx FEISHU_REPORT_FOLDER_TOKEN "target_feishu_folder_token"
 setx FEISHU_REPORT_USER_EMAIL "your_feishu_login_email"
+setx FEISHU_REPORT_USER_MOBILE "your_feishu_login_mobile"
 setx FEISHU_REPORT_USER_PERM "full_access"
 ```
 
@@ -94,10 +95,11 @@ to an ID first:
 
 ```powershell
 python scripts\share_feishu_doc.py --resolve-email user@example.com
+python scripts\share_feishu_doc.py --resolve-mobile 13800138000
 python scripts\share_feishu_doc.py QSBWd0aOXo6FhCxt2LScU5EEnEs openid <OPEN_ID> full_access
 ```
 
-Email resolution requires the Feishu scope `contact:user.id:readonly`.
+Email/mobile resolution requires the Feishu scope `contact:user.id:readonly`.
 
 ## Codex Skill
 

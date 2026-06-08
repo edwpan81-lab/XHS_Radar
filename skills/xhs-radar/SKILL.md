@@ -108,6 +108,7 @@ Optional:
 ```powershell
 setx FEISHU_REPORT_FOLDER_TOKEN "target_folder_token"
 setx FEISHU_REPORT_USER_EMAIL "your_feishu_email"
+setx FEISHU_REPORT_USER_MOBILE "your_feishu_login_mobile"
 setx FEISHU_REPORT_USER_PERM "full_access"
 ```
 
@@ -132,10 +133,11 @@ current tenant. Use the user's workplace email, or resolve it first:
 
 ```powershell
 python scripts/share_feishu_doc.py --resolve-email user@example.com
+python scripts/share_feishu_doc.py --resolve-mobile 13800138000
 python scripts/share_feishu_doc.py DOCUMENT_ID openid OPEN_ID full_access
 ```
 
-Email resolution requires the Feishu scope `contact:user.id:readonly`.
+Email/mobile resolution requires the Feishu scope `contact:user.id:readonly`.
 
 If Markdown conversion fails, create plain text blocks and tell the user which
 Feishu scope is missing, usually `docx:document.block:convert`.
