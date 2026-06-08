@@ -127,6 +127,16 @@ This requires `docs:permission.member` or `docs:permission.member:create`.
 If missing, open the scope in the Feishu app console, publish the permission
 change, then rerun the command.
 
+If Feishu says `email doesn't exist`, the provided email is not a user in the
+current tenant. Use the user's workplace email, or resolve it first:
+
+```powershell
+python scripts/share_feishu_doc.py --resolve-email user@example.com
+python scripts/share_feishu_doc.py DOCUMENT_ID openid OPEN_ID full_access
+```
+
+Email resolution requires the Feishu scope `contact:user.id:readonly`.
+
 If Markdown conversion fails, create plain text blocks and tell the user which
 Feishu scope is missing, usually `docx:document.block:convert`.
 

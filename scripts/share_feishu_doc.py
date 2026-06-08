@@ -114,13 +114,57 @@ def add_member(token: str, document_id: str, member_type: str, member_id: str, p
                     "publish the app permission change, then rerun this command.\n"
                     + error
                 )
+            if "email doesn't exist" in error:
+                raise RuntimeError(
+                    "The email passed to Feishu does not exist in this Feishu tenant. "
+                    "Set FEISHU_REPORT_USER_EMAIL to the user's Feishu workplace login email, "
+                    "or pass an explicit open_id/user_id instead, for example:\n"
+                    "  python scripts\\share_feishu_doc.py DOCUMENT_ID openid OPEN_ID full_access\n"
+                    "  python scripts\\share_feishu_doc.py DOCUMENT_ID userid USER_ID full_access\n"
+                    "You can also try resolving an email first:\n"
+                    "  python scripts\\share_feishu_doc.py --resolve-email user@example.com\n"
+                    + error
+                )
     raise RuntimeError("All permission add attempts failed:\n" + "\n".join(errors))
 
 
+def resolve_email(token: str, email: str, user_id_type: str = "open_id"):
+    try:
+        payload = api(
+            "POST",
+            f"/contact/v3/users/batch_get_id?user_id_type={user_id_type}",
+            token=token,
+            json={"emails": [email], "include_resigned": True},
+        )
+    except Exception as exc:
+        error = str(exc)
+        if "contact:user.id:readonly" in error:
+            raise RuntimeError(
+                "Resolving an email to a Feishu user ID requires the app scope "
+                "contact:user.id:readonly. Open that scope in the Feishu app console, "
+                "publish the permission change, then rerun --resolve-email. "
+                "Alternatively, pass an existing open_id/user_id directly."
+            ) from exc
+        raise
+    users = payload.get("data", {}).get("user_list", [])
+    if not users:
+        raise RuntimeError(
+            "No Feishu user was found for that email. Use the user's Feishu workplace login email, "
+            "or add the user to the app's contact visibility range."
+        )
+    return users[0]
+
+
 def main():
+    if len(sys.argv) >= 3 and sys.argv[1] == "--resolve-email":
+        user = resolve_email(get_tenant_token(), sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else "open_id")
+        print(json.dumps(user, ensure_ascii=False))
+        return
+
     if len(sys.argv) < 2:
         raise SystemExit(
-            "Usage: python scripts/share_feishu_doc.py <document_id_or_url> [email|openid|unionid|userid] [member_id] [view|edit|full_access] [docx|doc|sheet|file|bitable]"
+            "Usage: python scripts/share_feishu_doc.py <document_id_or_url> [email|openid|unionid|userid] [member_id] [view|edit|full_access] [docx|doc|sheet|file|bitable]\n"
+            "       python scripts/share_feishu_doc.py --resolve-email user@example.com [open_id|user_id|union_id]"
         )
 
     document_id = normalize_doc_token(sys.argv[1])

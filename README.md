@@ -88,6 +88,17 @@ If this reports missing `docs:permission.member` or `docs:permission.member:crea
 open that scope in the Feishu app console, publish the permission change, and rerun
 the command.
 
+If this reports `email doesn't exist`, the email is not a user in the current
+Feishu tenant. Use the user's Feishu workplace login email, or resolve the email
+to an ID first:
+
+```powershell
+python scripts\share_feishu_doc.py --resolve-email user@example.com
+python scripts\share_feishu_doc.py QSBWd0aOXo6FhCxt2LScU5EEnEs openid <OPEN_ID> full_access
+```
+
+Email resolution requires the Feishu scope `contact:user.id:readonly`.
+
 ## Codex Skill
 
 The reusable skill is in:
