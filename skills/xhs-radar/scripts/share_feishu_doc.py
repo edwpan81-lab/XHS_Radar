@@ -3,6 +3,8 @@ import os
 import re
 import sys
 from urllib.parse import urlparse
+if os.name == "nt":
+    import winreg
 
 import requests
 
@@ -11,10 +13,25 @@ BASE_URL = "https://open.feishu.cn/open-apis"
 
 
 def require_env(name: str) -> str:
-    value = os.environ.get(name)
+    value = get_env(name)
     if not value:
         raise RuntimeError(f"Missing environment variable: {name}")
     return value
+
+
+def get_env(name: str, default: str | None = None) -> str | None:
+    value = os.environ.get(name)
+    if value:
+        return value
+    if os.name == "nt":
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+                value, _ = winreg.QueryValueEx(key, name)
+                if value:
+                    return str(value)
+        except OSError:
+            pass
+    return default
 
 
 def api(method: str, path: str, token: str | None = None, **kwargs):
@@ -182,17 +199,17 @@ def main():
             "       python share_feishu_doc.py --resolve-mobile 13800138000 [open_id|user_id|union_id]"
         )
     document_id = normalize_doc_token(sys.argv[1])
-    member_type = sys.argv[2] if len(sys.argv) > 2 else os.environ.get("FEISHU_REPORT_MEMBER_TYPE")
+    member_type = sys.argv[2] if len(sys.argv) > 2 else get_env("FEISHU_REPORT_MEMBER_TYPE")
     member_id = sys.argv[3] if len(sys.argv) > 3 else None
-    perm = sys.argv[4] if len(sys.argv) > 4 else os.environ.get("FEISHU_REPORT_USER_PERM", "full_access")
-    doc_type = sys.argv[5] if len(sys.argv) > 5 else os.environ.get("FEISHU_REPORT_DOC_TYPE", "docx")
+    perm = sys.argv[4] if len(sys.argv) > 4 else get_env("FEISHU_REPORT_USER_PERM", "full_access")
+    doc_type = sys.argv[5] if len(sys.argv) > 5 else get_env("FEISHU_REPORT_DOC_TYPE", "docx")
     if not member_type:
-        if os.environ.get("FEISHU_REPORT_USER_MOBILE"):
+        if get_env("FEISHU_REPORT_USER_MOBILE"):
             member_type = "mobile"
-            member_id = member_id or os.environ.get("FEISHU_REPORT_USER_MOBILE")
+            member_id = member_id or get_env("FEISHU_REPORT_USER_MOBILE")
         else:
             member_type = "email"
-            member_id = member_id or os.environ.get("FEISHU_REPORT_USER_EMAIL")
+            member_id = member_id or get_env("FEISHU_REPORT_USER_EMAIL")
     if not member_id:
         raise RuntimeError("Pass member_id or set FEISHU_REPORT_USER_EMAIL / FEISHU_REPORT_USER_MOBILE")
     if member_type == "mobile":

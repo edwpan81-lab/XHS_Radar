@@ -1,8 +1,12 @@
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
+from urllib.parse import urlparse
+if os.name == "nt":
+    import winreg
 
 import requests
 
@@ -11,10 +15,25 @@ BASE_URL = "https://open.feishu.cn/open-apis"
 
 
 def require_env(name: str) -> str:
-    value = os.environ.get(name)
+    value = get_env(name)
     if not value:
         raise RuntimeError(f"Missing environment variable: {name}")
     return value
+
+
+def get_env(name: str, default: str | None = None) -> str | None:
+    value = os.environ.get(name)
+    if value:
+        return value
+    if os.name == "nt":
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+                value, _ = winreg.QueryValueEx(key, name)
+                if value:
+                    return str(value)
+        except OSError:
+            pass
+    return default
 
 
 def api(method: str, path: str, token: str | None = None, **kwargs):
@@ -51,11 +70,98 @@ def get_tenant_token() -> str:
 
 def create_document(token: str, title: str) -> str:
     body = {"title": title}
-    folder_token = os.environ.get("FEISHU_REPORT_FOLDER_TOKEN")
+    folder_token = get_env("FEISHU_REPORT_FOLDER_TOKEN")
     if folder_token:
         body["folder_token"] = folder_token
     payload = api("POST", "/docx/v1/documents", token=token, json=body)
     return payload["data"]["document"]["document_id"]
+
+
+def normalize_doc_token(value: str) -> str:
+    parsed = urlparse(value)
+    if parsed.scheme and parsed.netloc:
+        match = re.search(r"/docx/([^/?#]+)", parsed.path)
+        if match:
+            return match.group(1)
+    return value
+
+
+def build_member(member_type: str, member_id: str, perm: str, include_optional: bool = True):
+    member = {"member_type": member_type, "member_id": member_id, "perm": perm}
+    if include_optional:
+        member["perm_type"] = "container"
+        member["type"] = "user"
+    return member
+
+
+def resolve_contact_id(
+    token: str,
+    *,
+    emails: list[str] | None = None,
+    mobiles: list[str] | None = None,
+    user_id_type: str = "open_id",
+):
+    payload = api(
+        "POST",
+        f"/contact/v3/users/batch_get_id?user_id_type={user_id_type}",
+        token=token,
+        json={"emails": emails or [], "mobiles": mobiles or [], "include_resigned": True},
+    )
+    users = payload.get("data", {}).get("user_list", [])
+    if not users:
+        raise RuntimeError("No Feishu user was found for that email/mobile.")
+    return users[0]
+
+
+def add_member(token: str, document_id: str, member_type: str, member_id: str, perm: str, doc_type: str):
+    attempts = [
+        (
+            "batch_create_full",
+            f"/drive/v1/permissions/{document_id}/members/batch_create?type={doc_type}&need_notification=false",
+            {"members": [build_member(member_type, member_id, perm, include_optional=True)]},
+        ),
+        (
+            "batch_create_minimal",
+            f"/drive/v1/permissions/{document_id}/members/batch_create?type={doc_type}&need_notification=false",
+            {"members": [build_member(member_type, member_id, perm, include_optional=False)]},
+        ),
+    ]
+    errors: list[str] = []
+    for name, path, body in attempts:
+        try:
+            return name, api("POST", path, token=token, json=body)
+        except Exception as exc:
+            errors.append(f"{name}: {exc}")
+    raise RuntimeError("Failed to add Feishu collaborator:\n" + "\n".join(errors))
+
+
+def collaborator_from_env(token: str):
+    perm = get_env("FEISHU_REPORT_USER_PERM", "full_access")
+    doc_type = get_env("FEISHU_REPORT_DOC_TYPE", "docx")
+    mobile = get_env("FEISHU_REPORT_USER_MOBILE")
+    if mobile:
+        user = resolve_contact_id(token, mobiles=[mobile], user_id_type="open_id")
+        member_id = user.get("user_id")
+        if not member_id:
+            raise RuntimeError(f"Could not resolve mobile to open_id: {json.dumps(user, ensure_ascii=False)}")
+        return "openid", member_id, perm, doc_type
+    member_type = get_env("FEISHU_REPORT_MEMBER_TYPE")
+    member_id = get_env("FEISHU_REPORT_MEMBER_ID")
+    if member_type and member_id:
+        return member_type, member_id, perm, doc_type
+    email = get_env("FEISHU_REPORT_USER_EMAIL")
+    if email:
+        return "email", email, perm, doc_type
+    return None
+
+
+def maybe_add_collaborator(token: str, document_id: str):
+    collaborator = collaborator_from_env(token)
+    if not collaborator:
+        return None
+    member_type, member_id, perm, doc_type = collaborator
+    method_name, payload = add_member(token, normalize_doc_token(document_id), member_type, member_id, perm, doc_type)
+    return {"attempt": method_name, "data": payload.get("data", payload)}
 
 
 def markdown_to_blocks(token: str, document_id: str, markdown: str):
@@ -138,7 +244,15 @@ def main():
         print(f"Markdown convert unavailable, falling back to plain blocks: {exc}", file=sys.stderr)
         blocks = fallback_text_blocks(markdown)
     append_blocks(token, document_id, blocks)
-    print(json.dumps({"document_id": document_id, "url": f"https://feishu.cn/docx/{document_id}"}, ensure_ascii=False))
+    result = {"document_id": document_id, "url": f"https://feishu.cn/docx/{document_id}"}
+    try:
+        collaborator = maybe_add_collaborator(token, document_id)
+        if collaborator:
+            result["collaborator"] = collaborator
+    except Exception as exc:
+        result["collaborator_error"] = str(exc)
+        print(f"Collaborator add failed: {exc}", file=sys.stderr)
+    print(json.dumps(result, ensure_ascii=False))
 
 
 if __name__ == "__main__":

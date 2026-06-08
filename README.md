@@ -79,6 +79,10 @@ Create a Feishu report from Markdown:
 python scripts\create_feishu_report.py reports\popmart_mvp_2026-06-07.md
 ```
 
+If `FEISHU_REPORT_USER_MOBILE`, `FEISHU_REPORT_USER_EMAIL`, or
+`FEISHU_REPORT_MEMBER_TYPE` + `FEISHU_REPORT_MEMBER_ID` is configured, the report
+script will automatically add that user as a collaborator after creating the doc.
+
 Grant a user access to an app-created doc:
 
 ```powershell

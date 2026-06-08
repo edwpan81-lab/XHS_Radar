@@ -118,6 +118,10 @@ Create a report:
 python scripts/create_feishu_report.py path/to/report.md
 ```
 
+If `FEISHU_REPORT_USER_MOBILE`, `FEISHU_REPORT_USER_EMAIL`, or
+`FEISHU_REPORT_MEMBER_TYPE` + `FEISHU_REPORT_MEMBER_ID` is configured, report
+creation automatically adds that user as a collaborator.
+
 Grant the user access:
 
 ```powershell
